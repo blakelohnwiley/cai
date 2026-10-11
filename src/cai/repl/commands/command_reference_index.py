@@ -16,7 +16,7 @@ CLI_COMMAND_CATEGORIES: tuple[tuple[str, tuple[str, ...]], ...] = (
         ("/memory", "/history", "/compact", "/flush", "/load", "/save", "/merge"),
     ),
     ("Environment & Configuration", ("/env", "/workspace", "/virtualization", "/config")),
-    ("Tools & Integration", ("/mcp", "/shell")),
+    ("Tools & Integration", ("/mcp", "/shell", "/jev")),
     ("Parallel Execution", ("/parallel",)),
     (
         "Session, cost & utilities",
