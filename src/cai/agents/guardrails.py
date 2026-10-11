@@ -5,9 +5,19 @@ This module implements guardrails to protect against prompt injection attacks
 when agents interact with untrusted external content (web pages, server responses, etc).
 """
 
+import base64
+import os
 import re
+import unicodedata
 from typing import Any, Union
+
+from openai import AsyncOpenAI
 from pydantic import BaseModel
+
+from cai.integrations.jev.guardrails import (
+    jev_guardrails_enabled,
+    screen_text_with_jev,
+)
 from cai.sdk.agents import (
     Agent,
     GuardrailFunctionOutput,
@@ -18,12 +28,8 @@ from cai.sdk.agents import (
     TResponseInputItem,
     input_guardrail,
     output_guardrail,
-    OpenAIChatCompletionsModel
+    OpenAIChatCompletionsModel,
 )
-from openai import AsyncOpenAI
-import os
-import unicodedata
-
 from cai.util import create_system_prompt_renderer
 
 _INJECTION_DETECTOR_BASE = """You are a security guardrail that detects prompt injection attempts.
@@ -258,11 +264,10 @@ async def prompt_injection_guardrail(
     
     This guardrail:
     1. Performs pattern matching for known injection techniques
-    2. Uses an AI model to detect sophisticated injection attempts
-    3. Sanitizes external content when detected
+    2. Optionally screens with TypeSafe Jev (System One) when configured
+    3. Falls back to an LLM detector for sophisticated injection attempts
+    4. Sanitizes external content when detected
     """
-    import base64  # Import at function level to avoid scope issues
-    
     # Check if guardrails are disabled at runtime
     if os.getenv("CAI_GUARDRAILS", "false").lower() == "false":
         return GuardrailFunctionOutput(
@@ -307,7 +312,7 @@ async def prompt_injection_guardrail(
                         },
                         tripwire_triggered=True
                     )
-            except:
+            except Exception:
                 pass
     
     # If we detect obvious patterns, block immediately
@@ -321,16 +326,41 @@ async def prompt_injection_guardrail(
             },
             tripwire_triggered=True
         )
+
+    # Prefer TypeSafe Jev for calibrated injection screening when enabled.
+    # Skips internal/empty traffic; falls back to the LLM detector on error.
+    skip_model_screen = (
+        "User input is empty" in input_text or "role': 'tool'" in input_text
+    )
+    if jev_guardrails_enabled() and not skip_model_screen and (
+        has_patterns or len(input_text) >= 40
+    ):
+        jev_result = await screen_text_with_jev(input_text)
+        if jev_result.get("action") == "blocked":
+            return GuardrailFunctionOutput(
+                output_info={
+                    "jev_detection": jev_result,
+                    "action": "blocked",
+                    "reason": "Jev detected probable prompt injection",
+                },
+                tripwire_triggered=True,
+            )
+        if jev_result.get("action") in ("allowed", "review"):
+            return GuardrailFunctionOutput(
+                output_info={
+                    "action": "allowed",
+                    "jev_detection": jev_result,
+                    "patterns_found": patterns if has_patterns else [],
+                },
+                tripwire_triggered=False,
+            )
     
     # For borderline cases, use AI detection (slower but more accurate)
     # Only use AI detection for cases with very strong indicators
     if has_patterns and len(patterns) >= 3:
         try:
             # Skip AI detection for system messages or empty inputs
-            if "User input is empty" in input_text or "role': 'tool'" in input_text:
-                # This is likely internal system communication, not an injection
-                pass
-            else:
+            if not skip_model_screen:
                 result = await Runner.run(
                     get_injection_detector_agent(),
                     input_text,
@@ -382,8 +412,6 @@ async def command_execution_guardrail(
     This prevents execution of potentially malicious commands that
     might have been influenced by prompt injection.
     """
-    import base64  # Import at function level to avoid scope issues
-    
     # Check if guardrails are disabled at runtime
     if os.getenv("CAI_GUARDRAILS", "false").lower() == "false":
         return GuardrailFunctionOutput(
@@ -519,11 +547,14 @@ def get_security_guardrails():
     Returns a tuple of (input_guardrails, output_guardrails) for security-critical agents.
     
     Respects the CAI_GUARDRAILS environment variable:
-    - "true" (default): Returns configured guardrails
+    - "true": Returns configured guardrails
     - "false": Returns empty lists, disabling all guardrails
+
+    When guardrails are on and a System One backend is configured (Cloudflare
+    clef-flash free Neurons, TypeSafe, or OpenRouter), the input guardrail
+    prefers Jev/Clef for calibrated injection screening.
+    Set CAI_JEV_GUARDRAILS=false to force the legacy LLM detector path.
     """
-    import os
-    
     # Check if guardrails are disabled via environment variable
     guardrails_enabled = os.getenv("CAI_GUARDRAILS", "false").lower() != "false"
     

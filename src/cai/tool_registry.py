@@ -47,6 +47,11 @@ TOOL_REQUIRES_KEY: dict[str, str] = {
     "shodan_host_info": "shodan_api_key",
     "make_google_search": "google_search_api_key",
     "google_search": "google_search_api_key",
+    # jev_decide accepts Cloudflare Neurons (free), TypeSafe, or OpenRouter.
+    # Gating uses cloudflare_api_token OR typesafe_api_key OR openrouter_api_key
+    # via custom check in list_for_agent_filtered overrides below — keep a
+    # primary attr for introspection.
+    "jev_decide": "typesafe_api_key",
 }
 
 
@@ -144,6 +149,18 @@ class ToolRegistry:
         result = []
         for tool in all_tools:
             tname = getattr(tool, "name", str(tool))
+            if tname == "jev_decide":
+                if not (
+                    getattr(cfg, "cloudflare_api_token", None)
+                    or getattr(cfg, "typesafe_api_key", None)
+                    or getattr(cfg, "openrouter_api_key", None)
+                ):
+                    _logger.debug(
+                        "Skipping tool jev_decide: no Cloudflare/TypeSafe/OpenRouter key"
+                    )
+                    continue
+                result.append(tool)
+                continue
             required_key_attr = TOOL_REQUIRES_KEY.get(tname)
             if required_key_attr:
                 if not getattr(cfg, required_key_attr, None):

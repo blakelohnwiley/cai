@@ -35,6 +35,19 @@ Output guardrails run in 3 steps:
 
 If the input or output fails the guardrail, the Guardrail can signal this with a tripwire. As soon as we see a guardrail that has triggered the tripwires, we immediately raise a `{Input,Output}GuardrailTripwireTriggered` exception and halt the Agent execution.
 
+## System One screening (Jev / Clef)
+
+When `CAI_GUARDRAILS=true` and a System One backend is configured, CAI’s built-in prompt-injection input guardrail prefers **Jev/Clef** over a second LLM call. The battery scores jailbreak, indirect injection, and secret-exfiltration attempts — it is tuned for authorized security work, not generic “block hacking” filters.
+
+**Free hosted path:** Cloudflare Workers AI `clef-flash` (shared 10k Neurons/day). Jev is **not** offered for free on GCP Vertex, AWS Bedrock, or Azure AI Foundry. See [Jev / Clef provider docs](providers/jev.md).
+
+```bash
+export CAI_GUARDRAILS=true
+export CAI_JEV_PROVIDER=cloudflare
+export CLOUDFLARE_ACCOUNT_ID=...
+export CLOUDFLARE_API_TOKEN=...
+```
+
 ## Implementing a guardrail
 
 You need to provide a function that receives input, and returns a [`GuardrailFunctionOutput`][cai.sdk.agents.guardrail.GuardrailFunctionOutput]. In this example, we'll do this by running an Agent under the hood.

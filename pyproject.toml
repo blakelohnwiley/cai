@@ -71,6 +71,9 @@ mail = ["dnspython"]
 pdf = ["PyPDF2"]
 web = ["flask"]
 telemetry = ["openinference-instrumentation-openai>=0.1.22"]
+# Optional official TypeSafe SDK. CAI's Jev integration uses httpx by default
+# and does not require this package; install it only if you want the upstream SDK.
+jev = ["typesafe-sdk>=0.7.1,<0.8"]
 test = [
     "pytest",
     "pytest-asyncio",
@@ -80,7 +83,7 @@ test = [
     "graphviz>=0.17",
 ]
 all = [
-    "cai-framework[viz,data,tui,docs,mail,pdf,web,telemetry,test]",
+    "cai-framework[viz,data,tui,docs,mail,pdf,web,telemetry,jev,test]",
 ]
 
 [dependency-groups]

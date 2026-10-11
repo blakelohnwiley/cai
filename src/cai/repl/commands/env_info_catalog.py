@@ -167,6 +167,12 @@ _RUNTIME_FRIENDLY = frozenset(
         "CAI_DISPLAY_MAX_OUTPUT",
         "CAI_CTX_TRUNC",
         "CAI_GUARDRAILS",
+        "CAI_JEV_GUARDRAILS",
+        "CAI_JEV_PROVIDER",
+        "CAI_JEV_MODEL",
+        "CAI_JEV_JAILBREAK_THRESHOLD",
+        "CAI_JEV_EXFIL_THRESHOLD",
+        "CAI_JEV_SEVERITY_BLOCK",
         "CAI_PLAN",
         "CAI_SENSITIVE_GUARD",
         "CAI_AVOID_SUDO",
@@ -286,6 +292,17 @@ _CONSTRAINT_LABEL_BY_VAR: Dict[str, str] = {
     "CAI_DISABLE_SESSION_RECORDING": "bool",
     "CAI_DISABLE_USAGE_TRACKING": "bool",
     "CAI_GUARDRAILS": "bool",
+    "CAI_JEV_GUARDRAILS": "bool|auto",
+    "CAI_JEV_PROVIDER": "string",
+    "CAI_JEV_MODEL": "string",
+    "CAI_JEV_JAILBREAK_THRESHOLD": "float 0.0–1.0",
+    "CAI_JEV_EXFIL_THRESHOLD": "float 0.0–1.0",
+    "CAI_JEV_SEVERITY_BLOCK": "float",
+    "CLOUDFLARE_ACCOUNT_ID": "string",
+    "CLOUDFLARE_API_TOKEN": "secret",
+    "TYPESAFE_API_KEY": "secret",
+    "TYPESAFE_BASE_URL": "string (URL)",
+    "TYPESAFE_DEFAULT_MODEL": "string",
     "CAI_PLAN": "bool",
     "CAI_COST_DISPLAYED": "bool",
     "CAI_ENABLE_PRICING_FETCH": "bool",
@@ -367,6 +384,68 @@ def constraints_line(var_name: str, description: str) -> str:
 # from ``_CONSTRAINT_LABEL_BY_VAR`` and ``_RESTART_RECOMMENDED``/``_RUNTIME_FRIENDLY`` above
 # (single source of truth; use ``constraints_line`` / ``effective_label`` to read them).
 EXTRA_ENV_VARS: List[Dict[str, Any]] = [
+    {
+        "name": "CAI_JEV_PROVIDER",
+        "default": "auto",
+        "description": (
+            "System One backend: auto|cloudflare|typesafe|openrouter. "
+            "Free path: cloudflare + clef-flash (Workers AI 10k Neurons/day). "
+            "Jev is not hosted for free on GCP Vertex, AWS Bedrock, or Azure AI Foundry."
+        ),
+    },
+    {
+        "name": "CAI_JEV_MODEL",
+        "default": "clef-flash (cloudflare) / jev-latest (typesafe)",
+        "description": "Override System One model id (e.g. clef-flash, clef, jev-latest, typesafe/jev).",
+    },
+    {
+        "name": "CAI_JEV_GUARDRAILS",
+        "default": "auto",
+        "description": (
+            "When true/false, force Jev/Clef injection screening on or off. "
+            "When unset, auto-enable if any System One backend is configured."
+        ),
+    },
+    {
+        "name": "CAI_JEV_JAILBREAK_THRESHOLD",
+        "default": "0.75",
+        "description": "Block when Jev/Clef jailbreak or indirect_injection noul is at/above this value.",
+    },
+    {
+        "name": "CAI_JEV_EXFIL_THRESHOLD",
+        "default": "0.8",
+        "description": "Block when Jev/Clef exfiltration noul is at/above this value.",
+    },
+    {
+        "name": "CAI_JEV_SEVERITY_BLOCK",
+        "default": "2.0",
+        "description": "Block when Jev/Clef severity score is at/above this value (0–3 scale).",
+    },
+    {
+        "name": "CLOUDFLARE_ACCOUNT_ID",
+        "default": "unset",
+        "description": "Cloudflare account id for Workers AI System One (clef-flash free Neurons).",
+    },
+    {
+        "name": "CLOUDFLARE_API_TOKEN",
+        "default": "unset",
+        "description": "Cloudflare API token with Workers AI Read (alias: CLOUDFLARE_AUTH_TOKEN).",
+    },
+    {
+        "name": "TYPESAFE_API_KEY",
+        "default": "unset",
+        "description": "TypeSafe API key for direct Jev System One (https://console.typesafe.ai/keys).",
+    },
+    {
+        "name": "TYPESAFE_BASE_URL",
+        "default": "https://api.typesafe.ai",
+        "description": "Override System One base URL (TypeSafe, OpenRouter, or self-hosted).",
+    },
+    {
+        "name": "TYPESAFE_DEFAULT_MODEL",
+        "default": "jev-latest",
+        "description": "Default TypeSafe/OpenRouter model when CAI_JEV_MODEL is unset.",
+    },
     {
         "name": "CAI_ORCHESTRATION_WORKER_MAX_TURNS",
         "default": "6",

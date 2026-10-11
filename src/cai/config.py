@@ -100,6 +100,16 @@ class CAIConfig:
 
     # --- Security ---
     guardrails: bool = False
+    # When True (or unset with a System One backend configured), input
+    # guardrails prefer Jev/Clef for calibrated prompt-injection screening.
+    jev_guardrails: bool | None = None
+    jev_provider: str = "auto"  # auto|cloudflare|typesafe|openrouter
+    jev_model: str | None = None
+    typesafe_api_key: str | None = None
+    typesafe_base_url: str | None = None
+    typesafe_default_model: str = "jev-latest"
+    cloudflare_account_id: str | None = None
+    cloudflare_api_token: str | None = None
     tool_timeout: int = 120
 
     # --- TUI ---
@@ -222,6 +232,21 @@ class CAIConfig:
             tracing=_parse_bool(os.getenv("CAI_TRACING", "true")),
             telemetry=os.getenv("CAI_TELEMETRY", "true").lower() != "false",
             guardrails=_parse_bool(os.getenv("CAI_GUARDRAILS", "false")),
+            jev_guardrails=(
+                _parse_bool(os.getenv("CAI_JEV_GUARDRAILS", "false"))
+                if os.getenv("CAI_JEV_GUARDRAILS") is not None
+                else None
+            ),
+            jev_provider=os.getenv("CAI_JEV_PROVIDER", "auto"),
+            jev_model=os.getenv("CAI_JEV_MODEL"),
+            typesafe_api_key=os.getenv("TYPESAFE_API_KEY"),
+            typesafe_base_url=os.getenv("TYPESAFE_BASE_URL"),
+            typesafe_default_model=os.getenv("TYPESAFE_DEFAULT_MODEL", "jev-latest"),
+            cloudflare_account_id=os.getenv("CLOUDFLARE_ACCOUNT_ID"),
+            cloudflare_api_token=(
+                os.getenv("CLOUDFLARE_API_TOKEN")
+                or os.getenv("CLOUDFLARE_AUTH_TOKEN")
+            ),
             tool_timeout=int(os.getenv("CAI_TOOL_TIMEOUT", "120")),
             tui_enabled=_parse_bool(os.getenv("CAI_TUI", "true")),
             tui_mode=os.getenv("CAI_TUI_MODE", "default"),
