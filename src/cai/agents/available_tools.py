@@ -27,10 +27,15 @@ AVAILABLE_TOOLS = {
         "description": "Get Shodan info for specific host"
     },
     "make_web_search_with_explanation": {
-        "import": "from cai.tools.web.search_web import make_web_search_with_explanation",
+"import": "from cai.tools.web.search_web import make_web_search_with_explanation",
         "category": "core",
         "description": "AI-powered web search with explanation"
-    }
+    },
+    "jev_decide": {
+        "import": "from cai.tools.misc.jev_decide import jev_decide",
+        "category": "misc",
+        "description": "TypeSafe Jev typed decisions (noul/choice/score)",
+    },
 }
 
 # Group tools by category for easy selection

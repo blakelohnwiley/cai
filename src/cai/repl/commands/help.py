@@ -247,6 +247,7 @@ class HelpCommand(Command):
         # Tools & Integration
         self.add_subcommand("mcp", "Display help for Model Context Protocol", self.handle_mcp)
         self.add_subcommand("shell", "Display help for shell commands", self.handle_shell)
+        self.add_subcommand("jev", "Display help for System One (Jev/Clef) decisions", self.handle_jev)
 
         # Utilities
         self.add_subcommand("model", "Display help for model selection", self.handle_model)
@@ -984,6 +985,21 @@ class HelpCommand(Command):
             Panel(
                 mcp_help_panel_markup(),
                 title=_quick_guide_subpanel_title("MCP Commands"),
+                title_align="left",
+                padding=(1, 1),
+                border_style=_CAI_GREEN,
+            )
+        )
+        return True
+
+    def handle_jev(self, _: Optional[List[str]] = None) -> bool:
+        """Show help for System One (Jev / Clef) decisions."""
+        from cai.repl.commands.jev import jev_help_panel_markup
+
+        console.print(
+            Panel(
+                jev_help_panel_markup(),
+                title=_quick_guide_subpanel_title("Jev Commands"),
                 title_align="left",
                 padding=(1, 1),
                 border_style=_CAI_GREEN,

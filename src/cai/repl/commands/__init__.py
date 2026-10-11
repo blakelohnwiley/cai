@@ -27,6 +27,7 @@ COMMAND_MODULES = [
     'graph',
     'help',
     'history',
+    'jev',
     'load',
     'mcp',
     'memory',
