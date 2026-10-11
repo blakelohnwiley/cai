@@ -35,13 +35,14 @@ def test_help_markup_mentions_beatapi():
     assert "jev-1.13-free" in text
     assert "BEATAPI_API_KEY" in text
     assert "/jev screen" in text
+    assert "/jev route" in text
 
 
 def test_command_registration_shape():
     cmd = JevCommand()
     assert cmd.name == "/jev"
     assert "/j" in cmd.aliases
-    for name in ("help", "status", "noul", "choice", "score", "screen"):
+    for name in ("help", "status", "noul", "choice", "score", "screen", "route"):
         assert name in cmd.subcommands
 
 
@@ -88,6 +89,36 @@ def test_noul_calls_client(monkeypatch):
         )
         questions = kwargs.get("questions") or args[1]
         assert questions["decision"]["type"] == "noul"
+
+
+def test_route_recommends_model(monkeypatch):
+    monkeypatch.setenv("CAI_JEV_PROVIDER", "beatapi")
+    monkeypatch.setenv("BEATAPI_API_KEY", "test-key")
+    cmd = JevCommand()
+    fake_decision = {
+        "tier": "sonnet",
+        "model": "claude-sonnet-5-5",
+        "raw_tier": "sonnet",
+        "tier_confidence": 0.8,
+        "task_family": "coding",
+        "complexity": 2.1,
+        "needs_max_quality": 0.2,
+        "upgrades": [],
+        "provider": "beatapi",
+        "jev_model": "jev-1.13-free",
+        "request_id": "r1",
+        "error": None,
+    }
+    with (
+        patch(
+            "cai.repl.commands.jev.route_prompt_to_anthropic",
+            return_value=fake_decision,
+        ),
+        patch("cai.repl.commands.jev.is_jev_configured", return_value=True),
+        patch("cai.repl.commands.jev.console") as mock_console,
+    ):
+        assert cmd.handle_route(["Fix", "the", "race", "condition"]) is True
+        assert mock_console.print.called
 
 
 def test_screen_routes_blocked(monkeypatch):

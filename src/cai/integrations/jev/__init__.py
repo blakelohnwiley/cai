@@ -9,6 +9,10 @@ Alt free: Cloudflare Workers AI ``clef-flash`` Neurons. Paid: TypeSafe or OpenRo
 Docs: https://docs.beatapi.io/decisions · https://docs.typesafe.ai/
 """
 
+from cai.integrations.jev.anthropic_route import (
+    apply_routing_rules,
+    route_prompt_to_anthropic,
+)
 from cai.integrations.jev.client import (
     JevClient,
     JevError,
@@ -22,9 +26,11 @@ __all__ = [
     "JevClient",
     "JevError",
     "JevResponse",
+    "apply_routing_rules",
     "choice",
     "is_jev_configured",
     "noul",
     "resolve_provider",
+    "route_prompt_to_anthropic",
     "score",
 ]
