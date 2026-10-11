@@ -1,15 +1,15 @@
-"""Minimal System One (Jev / Clef) example for CAI.
+"""Minimal System One (Jev) example for CAI.
 
-Free path (Cloudflare Workers AI Neurons)::
+Free TypeSafe Jev 1.13 via BeatAPI (zero balance OK)::
+
+    export CAI_JEV_PROVIDER=beatapi
+    export BEATAPI_API_KEY=...
+
+Alt free (Cloudflare Clef Neurons)::
 
     export CAI_JEV_PROVIDER=cloudflare
     export CLOUDFLARE_ACCOUNT_ID=...
     export CLOUDFLARE_API_TOKEN=...
-
-Paid TypeSafe::
-
-    export CAI_JEV_PROVIDER=typesafe
-    export TYPESAFE_API_KEY=...
 
 Then::
 
@@ -19,7 +19,6 @@ Then::
 from __future__ import annotations
 
 import json
-import os
 import sys
 
 from cai.integrations.jev import JevClient, JevError, is_jev_configured, noul, resolve_provider
@@ -29,9 +28,9 @@ def main() -> int:
     if not is_jev_configured():
         print(
             "No System One backend configured.\n"
-            "Free: CLOUDFLARE_ACCOUNT_ID + CLOUDFLARE_API_TOKEN (clef-flash).\n"
-            "Paid: TYPESAFE_API_KEY or OPENROUTER_API_KEY.\n"
-            "Note: Jev is not hosted for free on GCP Vertex / AWS Bedrock / Azure AI Foundry.",
+            "Free Jev 1.13: BEATAPI_API_KEY (model jev-1.13-free at api.beatapi.io).\n"
+            "Alt free: CLOUDFLARE_ACCOUNT_ID + CLOUDFLARE_API_TOKEN (clef-flash).\n"
+            "Paid: TYPESAFE_API_KEY or OPENROUTER_API_KEY.",
             file=sys.stderr,
         )
         return 1
@@ -79,7 +78,6 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    # Prefer dotenv if present, but do not require it.
     try:
         from dotenv import load_dotenv
 

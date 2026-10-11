@@ -151,12 +151,13 @@ class ToolRegistry:
             tname = getattr(tool, "name", str(tool))
             if tname == "jev_decide":
                 if not (
-                    getattr(cfg, "cloudflare_api_token", None)
+                    getattr(cfg, "beatapi_api_key", None)
+                    or getattr(cfg, "cloudflare_api_token", None)
                     or getattr(cfg, "typesafe_api_key", None)
                     or getattr(cfg, "openrouter_api_key", None)
                 ):
                     _logger.debug(
-                        "Skipping tool jev_decide: no Cloudflare/TypeSafe/OpenRouter key"
+                        "Skipping tool jev_decide: no BeatAPI/Cloudflare/TypeSafe/OpenRouter key"
                     )
                     continue
                 result.append(tool)

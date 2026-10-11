@@ -550,9 +550,9 @@ def get_security_guardrails():
     - "true": Returns configured guardrails
     - "false": Returns empty lists, disabling all guardrails
 
-    When guardrails are on and a System One backend is configured (Cloudflare
-    clef-flash free Neurons, TypeSafe, or OpenRouter), the input guardrail
-    prefers Jev/Clef for calibrated injection screening.
+    When guardrails are on and a System One backend is configured (BeatAPI
+    jev-1.13-free, Cloudflare clef-flash, TypeSafe, or OpenRouter), the input
+    guardrail prefers Jev/Clef for calibrated injection screening.
     Set CAI_JEV_GUARDRAILS=false to force the legacy LLM detector path.
     """
     # Check if guardrails are disabled via environment variable

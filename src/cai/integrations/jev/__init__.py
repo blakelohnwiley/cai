@@ -3,11 +3,10 @@
 Jev (TypeSafe) and Clef (Cloudflare) evaluate unstructured *state* against
 typed questions (noul / choice / score) and return calibrated probabilities.
 
-Free path: Cloudflare Workers AI ``clef-flash`` via ``CAI_JEV_PROVIDER=cloudflare``
-(10,000 Neurons/day). Paid: TypeSafe or OpenRouter. Not hosted for free on
-GCP Vertex, AWS Bedrock, or Azure AI Foundry.
+Free path: BeatAPI ``jev-1.13-free`` (``BEATAPI_API_KEY``, zero balance OK).
+Alt free: Cloudflare Workers AI ``clef-flash`` Neurons. Paid: TypeSafe or OpenRouter.
 
-Docs: https://docs.typesafe.ai/ · https://developers.cloudflare.com/workers-ai/models/clef-flash/
+Docs: https://docs.beatapi.io/decisions · https://docs.typesafe.ai/
 """
 
 from cai.integrations.jev.client import (

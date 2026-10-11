@@ -298,6 +298,8 @@ _CONSTRAINT_LABEL_BY_VAR: Dict[str, str] = {
     "CAI_JEV_JAILBREAK_THRESHOLD": "float 0.0–1.0",
     "CAI_JEV_EXFIL_THRESHOLD": "float 0.0–1.0",
     "CAI_JEV_SEVERITY_BLOCK": "float",
+    "BEATAPI_API_KEY": "secret",
+    "BEATAPI_BASE_URL": "string (URL)",
     "CLOUDFLARE_ACCOUNT_ID": "string",
     "CLOUDFLARE_API_TOKEN": "secret",
     "TYPESAFE_API_KEY": "secret",
@@ -388,15 +390,28 @@ EXTRA_ENV_VARS: List[Dict[str, Any]] = [
         "name": "CAI_JEV_PROVIDER",
         "default": "auto",
         "description": (
-            "System One backend: auto|cloudflare|typesafe|openrouter. "
-            "Free path: cloudflare + clef-flash (Workers AI 10k Neurons/day). "
-            "Jev is not hosted for free on GCP Vertex, AWS Bedrock, or Azure AI Foundry."
+            "System One backend: auto|beatapi|cloudflare|typesafe|openrouter. "
+            "Free real Jev: beatapi + jev-1.13-free (api.beatapi.io, zero balance OK). "
+            "Alt free: cloudflare clef-flash Neurons."
         ),
     },
     {
         "name": "CAI_JEV_MODEL",
-        "default": "clef-flash (cloudflare) / jev-latest (typesafe)",
-        "description": "Override System One model id (e.g. clef-flash, clef, jev-latest, typesafe/jev).",
+        "default": "jev-1.13-free (beatapi) / clef-flash (cloudflare)",
+        "description": "Override System One model id (e.g. jev-1.13-free, jev-1.13, clef-flash, jev-latest).",
+    },
+    {
+        "name": "BEATAPI_API_KEY",
+        "default": "unset",
+        "description": (
+            "BeatAPI key for free TypeSafe Jev 1.13 (jev-1.13-free). "
+            "No starting balance or card required; see https://beatapi.io"
+        ),
+    },
+    {
+        "name": "BEATAPI_BASE_URL",
+        "default": "https://api.beatapi.io",
+        "description": "BeatAPI base URL for System One (POST /v1/systemone).",
     },
     {
         "name": "CAI_JEV_GUARDRAILS",

@@ -63,8 +63,8 @@ def jev_decide(
     Use for triage, routing, and confidence-gated checks — not for generating
     text or code.
 
-    Free: set CLOUDFLARE_ACCOUNT_ID + CLOUDFLARE_API_TOKEN (clef-flash Neurons).
-    Paid: TYPESAFE_API_KEY or OPENROUTER_API_KEY.
+    Free: BEATAPI_API_KEY (jev-1.13-free, zero balance OK), or Cloudflare
+    clef-flash Neurons. Paid: TYPESAFE_API_KEY or OPENROUTER_API_KEY.
 
     Args:
         state: Unstructured context to evaluate (findings, message, etc.).
@@ -83,8 +83,8 @@ def jev_decide(
             {
                 "error": "No System One backend configured",
                 "hint": (
-                    "Free: CLOUDFLARE_ACCOUNT_ID + CLOUDFLARE_API_TOKEN "
-                    "(clef-flash). Paid: TYPESAFE_API_KEY or OPENROUTER_API_KEY."
+                    "Free: BEATAPI_API_KEY (jev-1.13-free at api.beatapi.io). "
+                    "Alt: CLOUDFLARE_* (clef-flash). Paid: TYPESAFE_API_KEY / OPENROUTER_API_KEY."
                 ),
             }
         )

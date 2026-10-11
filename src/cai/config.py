@@ -103,8 +103,10 @@ class CAIConfig:
     # When True (or unset with a System One backend configured), input
     # guardrails prefer Jev/Clef for calibrated prompt-injection screening.
     jev_guardrails: bool | None = None
-    jev_provider: str = "auto"  # auto|cloudflare|typesafe|openrouter
+    jev_provider: str = "auto"  # auto|beatapi|cloudflare|typesafe|openrouter
     jev_model: str | None = None
+    beatapi_api_key: str | None = None
+    beatapi_base_url: str | None = None
     typesafe_api_key: str | None = None
     typesafe_base_url: str | None = None
     typesafe_default_model: str = "jev-latest"
@@ -239,6 +241,8 @@ class CAIConfig:
             ),
             jev_provider=os.getenv("CAI_JEV_PROVIDER", "auto"),
             jev_model=os.getenv("CAI_JEV_MODEL"),
+            beatapi_api_key=os.getenv("BEATAPI_API_KEY"),
+            beatapi_base_url=os.getenv("BEATAPI_BASE_URL"),
             typesafe_api_key=os.getenv("TYPESAFE_API_KEY"),
             typesafe_base_url=os.getenv("TYPESAFE_BASE_URL"),
             typesafe_default_model=os.getenv("TYPESAFE_DEFAULT_MODEL", "jev-latest"),

@@ -51,8 +51,7 @@ def test_route_injection_allows_clean():
 
 def test_jev_guardrails_auto(monkeypatch):
     monkeypatch.delenv("CAI_JEV_GUARDRAILS", raising=False)
-    monkeypatch.setenv("CLOUDFLARE_ACCOUNT_ID", "acc")
-    monkeypatch.setenv("CLOUDFLARE_API_TOKEN", "tok")
+    monkeypatch.setenv("BEATAPI_API_KEY", "beat-key")
     assert jev_guardrails_enabled() is True
 
     monkeypatch.setenv("CAI_JEV_GUARDRAILS", "false")

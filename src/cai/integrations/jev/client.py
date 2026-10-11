@@ -2,16 +2,14 @@
 
 Backends (``CAI_JEV_PROVIDER``):
 
-- ``cloudflare`` — Workers AI ``@cf/cloudflare/clef-flash`` (free daily Neurons)
-  or paid ``typesafe/jev``. Needs ``CLOUDFLARE_ACCOUNT_ID`` + API token.
+- ``beatapi`` — BeatAPI ``POST https://api.beatapi.io/v1/systemone`` with
+  ``jev-1.13-free`` (TypeSafe Jev 1.13 at $0; zero balance OK; rate-limited).
+  Needs ``BEATAPI_API_KEY``.
+- ``cloudflare`` — Workers AI ``clef-flash`` (free daily Neurons) or paid
+  ``typesafe/jev``. Needs ``CLOUDFLARE_ACCOUNT_ID`` + API token.
 - ``typesafe`` — TypeSafe direct ``POST /v1/systemone`` (``TYPESAFE_API_KEY``).
 - ``openrouter`` — OpenRouter System One API (``OPENROUTER_API_KEY``).
-- ``auto`` (default) — prefer Cloudflare when configured, else TypeSafe,
-  else OpenRouter.
-
-GCP Vertex, AWS Bedrock, and Azure AI Foundry do not host Jev today. For those
-clouds, point ``TYPESAFE_BASE_URL`` at a self-hosted System One endpoint, or use
-Cloudflare's free Neurons allocation instead.
+- ``auto`` (default) — prefer BeatAPI, then Cloudflare, TypeSafe, OpenRouter.
 
 Uses ``httpx`` (CAI core dependency). Optional ``typesafe-sdk`` is not required.
 """
@@ -24,10 +22,12 @@ from typing import Any, Literal, Mapping
 
 import httpx
 
-Provider = Literal["auto", "cloudflare", "typesafe", "openrouter"]
+Provider = Literal["auto", "beatapi", "cloudflare", "typesafe", "openrouter"]
 
+DEFAULT_BEATAPI_BASE_URL = "https://api.beatapi.io"
 DEFAULT_TYPESAFE_BASE_URL = "https://api.typesafe.ai"
 DEFAULT_OPENROUTER_BASE_URL = "https://openrouter.ai/api"
+DEFAULT_BEATAPI_MODEL = "jev-1.13-free"
 DEFAULT_TYPESAFE_MODEL = "jev-latest"
 DEFAULT_CLOUDFLARE_MODEL = "clef-flash"
 DEFAULT_OPENROUTER_MODEL = "typesafe/jev-1.13"
@@ -39,6 +39,8 @@ CLOUDFLARE_CLEF_MODELS = {
     "@cf/cloudflare/clef": "@cf/cloudflare/clef",
     "@cf/cloudflare/clef-flash": "@cf/cloudflare/clef-flash",
 }
+
+_VALID_PROVIDERS = frozenset({"auto", "beatapi", "cloudflare", "typesafe", "openrouter"})
 
 
 class JevError(RuntimeError):
@@ -90,6 +92,10 @@ def _env(name: str) -> str:
     return os.getenv(name, "").strip()
 
 
+def beatapi_configured() -> bool:
+    return bool(_env("BEATAPI_API_KEY"))
+
+
 def cloudflare_configured() -> bool:
     token = _env("CLOUDFLARE_API_TOKEN") or _env("CLOUDFLARE_AUTH_TOKEN")
     return bool(_env("CLOUDFLARE_ACCOUNT_ID") and token)
@@ -106,14 +112,17 @@ def openrouter_configured() -> bool:
 def resolve_provider(provider: str | None = None) -> Provider:
     """Pick an active backend from explicit value or ``CAI_JEV_PROVIDER``."""
     raw = (provider or _env("CAI_JEV_PROVIDER") or "auto").lower()
-    if raw not in ("auto", "cloudflare", "typesafe", "openrouter"):
+    if raw not in _VALID_PROVIDERS:
         raise JevError(
             f"Unknown CAI_JEV_PROVIDER={raw!r}; "
-            "use auto, cloudflare, typesafe, or openrouter"
+            "use auto, beatapi, cloudflare, typesafe, or openrouter"
         )
     if raw != "auto":
         return raw  # type: ignore[return-value]
 
+    # Prefer real free Jev 1.13 via BeatAPI, then Cloudflare Clef Neurons.
+    if beatapi_configured():
+        return "beatapi"
     if cloudflare_configured():
         return "cloudflare"
     if typesafe_configured():
@@ -121,10 +130,10 @@ def resolve_provider(provider: str | None = None) -> Provider:
     if openrouter_configured():
         return "openrouter"
     raise JevError(
-        "No System One backend configured. For the free Cloudflare path set "
-        "CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_API_TOKEN (uses clef-flash + "
-        "10k Neurons/day). Or set TYPESAFE_API_KEY / OPENROUTER_API_KEY. "
-        "Jev is not hosted for free on GCP Vertex, AWS Bedrock, or Azure AI Foundry."
+        "No System One backend configured. Free Jev 1.13: set BEATAPI_API_KEY "
+        "(model jev-1.13-free at https://api.beatapi.io — zero balance OK). "
+        "Alt free: CLOUDFLARE_ACCOUNT_ID + CLOUDFLARE_API_TOKEN (clef-flash Neurons). "
+        "Paid: TYPESAFE_API_KEY or OPENROUTER_API_KEY."
     )
 
 
@@ -138,14 +147,17 @@ def is_jev_configured() -> bool:
 
 
 def _default_model_for(provider: Provider) -> str:
-    explicit = _env("TYPESAFE_DEFAULT_MODEL") or _env("CAI_JEV_MODEL")
-    if explicit:
-        return explicit
+    # CAI_JEV_MODEL always wins; TYPESAFE_DEFAULT_MODEL only applies to
+    # TypeSafe/OpenRouter so it cannot override BeatAPI's free model id.
+    if _env("CAI_JEV_MODEL"):
+        return _env("CAI_JEV_MODEL")
+    if provider == "beatapi":
+        return DEFAULT_BEATAPI_MODEL
     if provider == "cloudflare":
         return DEFAULT_CLOUDFLARE_MODEL
     if provider == "openrouter":
-        return DEFAULT_OPENROUTER_MODEL
-    return DEFAULT_TYPESAFE_MODEL
+        return _env("TYPESAFE_DEFAULT_MODEL") or DEFAULT_OPENROUTER_MODEL
+    return _env("TYPESAFE_DEFAULT_MODEL") or DEFAULT_TYPESAFE_MODEL
 
 
 class JevClient:
@@ -168,7 +180,20 @@ class JevClient:
         self._base_url = (base_url or "").rstrip("/")
         self._api_key = (api_key or "").strip()
 
-        if self._provider == "cloudflare":
+        if self._provider == "beatapi":
+            self._api_key = self._api_key or _env("BEATAPI_API_KEY")
+            if not self._api_key:
+                raise JevError(
+                    "BEATAPI_API_KEY is required for beatapi backend. "
+                    "Create a key at https://beatapi.io (jev-1.13-free needs no balance)."
+                )
+            self._base_url = (
+                self._base_url
+                or _env("BEATAPI_BASE_URL")
+                or _env("TYPESAFE_BASE_URL")
+                or DEFAULT_BEATAPI_BASE_URL
+            )
+        elif self._provider == "cloudflare":
             self._api_key = self._api_key or _env("CLOUDFLARE_API_TOKEN") or _env(
                 "CLOUDFLARE_AUTH_TOKEN"
             )
@@ -195,8 +220,7 @@ class JevClient:
             if not self._api_key:
                 raise JevError(
                     "TYPESAFE_API_KEY is required for typesafe backend. "
-                    "Create one at https://console.typesafe.ai/keys — or use "
-                    "CAI_JEV_PROVIDER=cloudflare for free Workers AI Neurons."
+                    "Or use CAI_JEV_PROVIDER=beatapi with BEATAPI_API_KEY for free Jev."
                 )
             self._base_url = (
                 self._base_url
@@ -241,7 +265,7 @@ class JevClient:
         if self._provider == "cloudflare":
             return self._cloudflare_endpoint_and_body(state, questions, selected)
 
-        # TypeSafe + OpenRouter System One share the same body shape.
+        # BeatAPI, TypeSafe, and OpenRouter share the System One body shape.
         return (
             f"{self._base_url}/v1/systemone",
             {
@@ -257,10 +281,8 @@ class JevClient:
         questions: Mapping[str, Mapping[str, Any]],
         selected: str,
     ) -> tuple[str, dict[str, Any]]:
-        # Native Cloudflare Clef models: System One body at /ai/run/<model>.
         clef_path = CLOUDFLARE_CLEF_MODELS.get(selected)
         if clef_path is not None:
-            # API body uses short selector "clef" / "clef-flash".
             short = "clef-flash" if "flash" in clef_path else "clef"
             return (
                 f"{self._base_url}/ai/run/{clef_path}",
@@ -271,7 +293,6 @@ class JevClient:
                 },
             )
 
-        # Third-party TypeSafe Jev on Workers AI / AI Gateway.
         model_id = selected if "/" in selected else f"typesafe/{selected}"
         return (
             f"{self._base_url}/ai/run",
@@ -303,6 +324,8 @@ class JevClient:
             detail = data.get("detail", data) if isinstance(data, dict) else data
             if isinstance(data, dict) and "errors" in data:
                 detail = data.get("errors") or detail
+            if isinstance(data, dict) and "error" in data:
+                detail = data.get("error") or detail
             raise JevError(
                 f"{self._provider} API error {response.status_code}: {detail}",
                 status=response.status_code,
@@ -311,7 +334,6 @@ class JevClient:
             )
 
         payload = data
-        # Cloudflare REST wraps many AI responses as {success, result}.
         if (
             self._provider == "cloudflare"
             and isinstance(data, dict)
@@ -334,6 +356,12 @@ class JevClient:
                 body=data,
                 request_id=request_id,
             )
+
+        # BeatAPI adds an `id` field on top of the TypeSafe response shape.
+        if not request_id and isinstance(payload, dict):
+            rid = payload.get("id")
+            if rid is not None:
+                request_id = str(rid)
 
         return JevResponse(
             model=str(payload.get("model", self._model)),
